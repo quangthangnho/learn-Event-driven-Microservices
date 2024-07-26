@@ -1,36 +1,27 @@
-package com.develop.estore.ProductService.controllers;
+package com.develop.estore.ProductService.command.controllers;
 
-import com.develop.estore.ProductService.command.CreateProductCommand;
-import com.develop.estore.ProductService.dto.request.CreateProductReq;
+import java.util.UUID;
+
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
+import com.develop.estore.ProductService.command.CreateProductCommand;
+import com.develop.estore.ProductService.command.dto.request.CreateProductReq;
 
 /**
  * @author admin
  */
 @RestController
 @RequestMapping("products")
-public class ProductController {
+public class ProductCommandController {
 
     private final CommandGateway commandGateway;
 
-    public ProductController(CommandGateway commandGateway) {
+    public ProductCommandController(CommandGateway commandGateway) {
         this.commandGateway = commandGateway;
     }
 
-    @GetMapping
-    public String getProducts() {
-        return "Get all products";
-    }
-
-    @GetMapping("/{id}")
-    public String getProductById(@PathVariable Long id) {
-        return "Get product with id: " + id;
-    }
-
-    @GetMapping("/create")
+    @PostMapping("/create")
     public String createProduct(@RequestBody CreateProductReq productReq) {
         CreateProductCommand createProductCommand = CreateProductCommand.builder()
                 .title(productReq.getTitle())
@@ -45,15 +36,5 @@ public class ProductController {
             response = e.getLocalizedMessage();
         }
         return response;
-    }
-
-    @GetMapping("/update/{id}")
-    public String updateProduct(@PathVariable Long id) {
-        return "Update product with id: " + id;
-    }
-
-    @GetMapping("/delete/{id}")
-    public String deleteProduct(@PathVariable Long id) {
-        return "Delete product with id: " + id;
     }
 }

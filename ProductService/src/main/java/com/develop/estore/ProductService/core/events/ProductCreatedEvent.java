@@ -1,9 +1,10 @@
-package com.develop.estore.ProductService.event;
-
-import com.develop.estore.ProductService.command.CreateProductCommand;
-import lombok.*;
+package com.develop.estore.ProductService.core.events;
 
 import java.math.BigDecimal;
+
+import com.develop.estore.ProductService.command.CreateProductCommand;
+
+import lombok.*;
 
 @Setter
 @Getter

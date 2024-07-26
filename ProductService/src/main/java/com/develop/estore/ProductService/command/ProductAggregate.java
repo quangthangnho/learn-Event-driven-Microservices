@@ -1,14 +1,16 @@
 package com.develop.estore.ProductService.command;
 
-import com.develop.estore.ProductService.event.ProductCreatedEvent;
-import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
+
 import org.axonframework.commandhandling.CommandHandler;
 import org.axonframework.eventsourcing.EventSourcingHandler;
 import org.axonframework.modelling.command.AggregateIdentifier;
 import org.axonframework.modelling.command.AggregateLifecycle;
 import org.axonframework.spring.stereotype.Aggregate;
 
-import java.math.BigDecimal;
+import com.develop.estore.ProductService.core.events.ProductCreatedEvent;
+
+import lombok.NoArgsConstructor;
 
 @Aggregate
 @NoArgsConstructor
@@ -16,6 +18,7 @@ public class ProductAggregate {
 
     @AggregateIdentifier
     private String productId;
+
     private String title;
     private Integer quantity;
     private BigDecimal price;
