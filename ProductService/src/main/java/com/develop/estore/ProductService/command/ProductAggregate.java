@@ -24,7 +24,7 @@ public class ProductAggregate {
     private BigDecimal price;
 
     @CommandHandler
-    public ProductAggregate(CreateProductCommand createProductCommand) {
+    public ProductAggregate(CreateProductCommand createProductCommand) throws Exception {
         if (createProductCommand.getPrice().compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Product price cannot be less than zero");
         }
