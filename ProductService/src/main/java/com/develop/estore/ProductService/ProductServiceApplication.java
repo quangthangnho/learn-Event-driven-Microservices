@@ -2,7 +2,6 @@ package com.develop.estore.ProductService;
 
 import org.axonframework.commandhandling.CommandBus;
 import org.axonframework.config.EventProcessingConfigurer;
-import org.axonframework.eventhandling.PropagatingErrorHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -33,7 +32,7 @@ public class ProductServiceApplication {
         configurer.registerListenerInvocationErrorHandler(
                 "product-group", conf -> new ProductServiceEventsErrorHandler());
 
-//        configurer.registerListenerInvocationErrorHandler(
-//                "product-group", conf -> PropagatingErrorHandler.instance());
+        //        configurer.registerListenerInvocationErrorHandler(
+        //                "product-group", conf -> PropagatingErrorHandler.instance());
     }
 }

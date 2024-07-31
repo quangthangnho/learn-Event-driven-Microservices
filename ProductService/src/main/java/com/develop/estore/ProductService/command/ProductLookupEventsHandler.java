@@ -22,6 +22,5 @@ public class ProductLookupEventsHandler {
     public void on(ProductCreatedEvent productCreatedEvent) throws Exception {
         productLookupRepository.save(
                 new ProductLookupEntity(productCreatedEvent.getProductId(), productCreatedEvent.getTitle()));
-        if(true) throw new Exception("Simulating exception in ProductLookupEventsHandler");
     }
 }
