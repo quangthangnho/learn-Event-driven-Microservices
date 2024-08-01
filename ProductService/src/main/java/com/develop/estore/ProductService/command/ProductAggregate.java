@@ -10,6 +10,8 @@ import org.axonframework.spring.stereotype.Aggregate;
 
 import com.develop.estore.ProductService.core.events.ProductCreatedEvent;
 
+import core.command.ReserveProductCommand;
+import core.event.ProductReservedEvent;
 import lombok.NoArgsConstructor;
 
 @Aggregate
@@ -32,11 +34,31 @@ public class ProductAggregate {
         AggregateLifecycle.apply(productCreatedEvent);
     }
 
+    @CommandHandler
+    public void handle(ReserveProductCommand reserveProductCommand) {
+        if (this.quantity < reserveProductCommand.getQuantity()) {
+            throw new IllegalArgumentException("Insufficient number of products in stock");
+        }
+
+        ProductReservedEvent productReservedEvent = ProductReservedEvent.builder()
+                .productId(reserveProductCommand.getProductId())
+                .orderId(reserveProductCommand.getOrderId())
+                .quantity(reserveProductCommand.getQuantity())
+                .userId(reserveProductCommand.getUserId())
+                .build();
+        AggregateLifecycle.apply(productReservedEvent);
+    }
+
     @EventSourcingHandler
     public void on(ProductCreatedEvent productCreatedEvent) {
         this.productId = productCreatedEvent.getProductId();
         this.title = productCreatedEvent.getTitle();
         this.quantity = productCreatedEvent.getQuantity();
         this.price = productCreatedEvent.getPrice();
+    }
+
+    @EventSourcingHandler
+    public void on(ProductReservedEvent productReservedEvent) {
+        this.quantity -= productReservedEvent.getQuantity();
     }
 }
