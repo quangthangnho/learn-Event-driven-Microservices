@@ -8,6 +8,7 @@ import com.develop.estore.ProductService.core.data.entity.ProductEntity;
 import com.develop.estore.ProductService.core.data.repository.ProductRepository;
 import com.develop.estore.ProductService.core.events.ProductCreatedEvent;
 
+import core.event.ProductReservationCancelledEvent;
 import core.event.ProductReservedEvent;
 import lombok.extern.slf4j.Slf4j;
 
@@ -40,5 +41,17 @@ public class ProductEventsHandler {
         log.info(
                 "save ENTITY: ProductReservedEvent is called for productId: {}",
                 productReservedEvent.getProductId() + " and orderId: " + productReservedEvent.getOrderId());
+    }
+
+    @EventHandler
+    public void on(ProductReservationCancelledEvent productReservationCancelledEvent) {
+        ProductEntity productEntity =
+                productRepository.findByProductId(productReservationCancelledEvent.getProductId());
+        productEntity.setQuantity(productEntity.getQuantity() + productReservationCancelledEvent.getQuantity());
+        productRepository.save(productEntity);
+        log.info(
+                "save ENTITY: ProductReservationCancelledEvent is called for productId: {}",
+                productReservationCancelledEvent.getProductId() + " and orderId: "
+                        + productReservationCancelledEvent.getOrderId());
     }
 }

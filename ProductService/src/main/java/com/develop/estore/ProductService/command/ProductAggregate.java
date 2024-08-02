@@ -9,7 +9,9 @@ import org.axonframework.modelling.command.AggregateLifecycle;
 import org.axonframework.spring.stereotype.Aggregate;
 
 import com.develop.estore.ProductService.core.events.ProductCreatedEvent;
+import com.develop.estore.ProductService.core.events.ProductReservationCancelledEvent;
 
+import core.command.CancelProductReservationCommand;
 import core.command.ReserveProductCommand;
 import core.event.ProductReservedEvent;
 import lombok.NoArgsConstructor;
@@ -37,6 +39,14 @@ public class ProductAggregate {
         AggregateLifecycle.apply(productCreatedEvent);
     }
 
+    @EventSourcingHandler
+    public void on(ProductCreatedEvent productCreatedEvent) {
+        this.productId = productCreatedEvent.getProductId();
+        this.title = productCreatedEvent.getTitle();
+        this.quantity = productCreatedEvent.getQuantity();
+        this.price = productCreatedEvent.getPrice();
+    }
+
     @CommandHandler
     public void handle(ReserveProductCommand reserveProductCommand) {
         if (this.quantity < reserveProductCommand.getQuantity()) {
@@ -53,15 +63,24 @@ public class ProductAggregate {
     }
 
     @EventSourcingHandler
-    public void on(ProductCreatedEvent productCreatedEvent) {
-        this.productId = productCreatedEvent.getProductId();
-        this.title = productCreatedEvent.getTitle();
-        this.quantity = productCreatedEvent.getQuantity();
-        this.price = productCreatedEvent.getPrice();
+    public void on(ProductReservedEvent productReservedEvent) {
+        this.quantity -= productReservedEvent.getQuantity();
+    }
+
+    @CommandHandler
+    public void handle(CancelProductReservationCommand cancelProductReservationCommand) {
+        ProductReservationCancelledEvent productReservationCancelledEvent = ProductReservationCancelledEvent.builder()
+                .productId(cancelProductReservationCommand.getProductId())
+                .orderId(cancelProductReservationCommand.getOrderId())
+                .quantity(cancelProductReservationCommand.getQuantity())
+                .userId(cancelProductReservationCommand.getUserId())
+                .reason(cancelProductReservationCommand.getReason())
+                .build();
+        AggregateLifecycle.apply(productReservationCancelledEvent);
     }
 
     @EventSourcingHandler
-    public void on(ProductReservedEvent productReservedEvent) {
-        this.quantity -= productReservedEvent.getQuantity();
+    public void on(ProductReservationCancelledEvent productReservationCancelledEvent) {
+        this.quantity += productReservationCancelledEvent.getQuantity();
     }
 }

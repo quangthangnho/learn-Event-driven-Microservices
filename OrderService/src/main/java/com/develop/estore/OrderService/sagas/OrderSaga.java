@@ -4,7 +4,6 @@ import java.io.Serializable;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import com.develop.estore.OrderService.core.event.OrderApprovedEvent;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.modelling.saga.EndSaga;
 import org.axonframework.modelling.saga.SagaEventHandler;
@@ -14,12 +13,17 @@ import org.axonframework.spring.stereotype.Saga;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.develop.estore.OrderService.command.ApproveOrderCommand;
+import com.develop.estore.OrderService.command.RejectOrderCommand;
+import com.develop.estore.OrderService.core.event.OrderApprovedEvent;
 import com.develop.estore.OrderService.core.event.OrderCreatedEvent;
+import com.develop.estore.OrderService.core.event.OrderRejectEvent;
 
+import core.command.CancelProductReservationCommand;
 import core.command.ProgressPaymentCommand;
 import core.command.ReserveProductCommand;
 import core.dto.User;
 import core.event.PaymentProcessedEvent;
+import core.event.ProductReservationCancelledEvent;
 import core.event.ProductReservedEvent;
 import core.query.FetchUserPaymentDetailsQuery;
 import lombok.extern.slf4j.Slf4j;
@@ -73,11 +77,13 @@ public class OrderSaga implements Serializable {
         } catch (Exception e) {
             log.error(e.getMessage());
             // handle compensating transaction
+            cancelProductReservation(productReservedEvent, e.getMessage());
             return;
         }
 
         if (userPaymentDetails == null) {
             // handle compensating transaction
+            cancelProductReservation(productReservedEvent, "Could not fetch user payment details");
             return;
         }
         log.info("User payment details are successfully fetched for userId: {}", userPaymentDetails.toString());
@@ -91,12 +97,26 @@ public class OrderSaga implements Serializable {
         try {
             result = commandGateway.sendAndWait(progressPaymentCommand, 10, TimeUnit.SECONDS);
         } catch (Exception e) {
-            log.error(e.getMessage());
             // handle compensating transaction
+            cancelProductReservation(productReservedEvent, e.getMessage());
+            return;
         }
         if (result == null) {
             // handle compensating transaction
+            cancelProductReservation(productReservedEvent, "Could not process payment");
         }
+    }
+
+    private void cancelProductReservation(ProductReservedEvent productReservedEvent, String reason) {
+        // handle compensating transaction
+        CancelProductReservationCommand cancelProductReservationCommand = CancelProductReservationCommand.builder()
+                .orderId(productReservedEvent.getOrderId())
+                .productId(productReservedEvent.getProductId())
+                .quantity(productReservedEvent.getQuantity())
+                .userId(productReservedEvent.getUserId())
+                .reason(reason)
+                .build();
+        commandGateway.send(cancelProductReservationCommand);
     }
 
     @SagaEventHandler(associationProperty = "orderId")
@@ -111,5 +131,22 @@ public class OrderSaga implements Serializable {
     public void handle(OrderApprovedEvent orderApprovedEvent) {
         // handle success
         log.info("OrderApprovedEvent: Order is approved for orderId: {}", orderApprovedEvent.getOrderId());
+    }
+
+    @SagaEventHandler(associationProperty = "orderId")
+    public void handle(ProductReservationCancelledEvent productReservationCancelledEvent) {
+        // create and send RejectOrderCommand
+        RejectOrderCommand rejectOrderCommand = RejectOrderCommand.builder()
+                .orderId(productReservationCancelledEvent.getOrderId())
+                .reason(productReservationCancelledEvent.getReason())
+                .build();
+        commandGateway.send(rejectOrderCommand);
+    }
+
+    @EndSaga
+    @SagaEventHandler(associationProperty = "orderId")
+    public void handle(OrderRejectEvent orderRejectEvent) {
+        // handle compensating transaction
+        log.info("OrderRejectEvent: Order is rejected for orderId: {}", orderRejectEvent.getOrderId());
     }
 }

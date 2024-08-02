@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import com.develop.estore.OrderService.core.entity.OrderEntity;
 import com.develop.estore.OrderService.core.event.OrderApprovedEvent;
 import com.develop.estore.OrderService.core.event.OrderCreatedEvent;
+import com.develop.estore.OrderService.core.event.OrderRejectEvent;
 import com.develop.estore.OrderService.core.repository.OrderRepository;
 
 @Component
@@ -37,6 +38,13 @@ public class OrderEventHandler {
             return;
         }
         orderEntity.setOrderStatus(orderApprovedEvent.getOrderStatus());
+        orderRepository.save(orderEntity);
+    }
+
+    @EventHandler
+    public void on(OrderRejectEvent orderRejectEvent) {
+        OrderEntity orderEntity = orderRepository.findByOrderId(orderRejectEvent.getOrderId());
+        orderEntity.setOrderStatus(orderRejectEvent.getOrderStatus());
         orderRepository.save(orderEntity);
     }
 }
