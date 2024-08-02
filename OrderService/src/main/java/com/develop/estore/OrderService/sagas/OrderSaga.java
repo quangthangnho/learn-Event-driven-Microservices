@@ -1,6 +1,7 @@
 package com.develop.estore.OrderService.sagas;
 
 import com.develop.estore.OrderService.core.event.OrderCreatedEvent;
+import core.command.ProgressPaymentCommand;
 import core.command.ReserveProductCommand;
 import core.dto.User;
 import core.event.ProductReservedEvent;
@@ -14,6 +15,8 @@ import org.axonframework.spring.stereotype.Saga;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.Serializable;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Saga
 @Slf4j
@@ -66,8 +69,22 @@ public class OrderSaga implements Serializable {
             // handle compensating transaction
             return;
         }
-        log.info("User payment details are successfully fetched for userId: {}", userPaymentDetails.getUserId());
         log.info("User payment details are successfully fetched for userId: {}", userPaymentDetails.toString());
 
+        ProgressPaymentCommand progressPaymentCommand = ProgressPaymentCommand.builder()
+                .orderId(productReservedEvent.getOrderId())
+                .paymentDetails(userPaymentDetails.getPaymentDetails())
+                .paymentId(UUID.randomUUID().toString())
+                .build();
+        String result = null;
+        try {
+            result = commandGateway.sendAndWait(progressPaymentCommand, 10, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            // handle compensating transaction
+        }
+        if(result == null) {
+            // handle compensating transaction
+        }
     }
 }
