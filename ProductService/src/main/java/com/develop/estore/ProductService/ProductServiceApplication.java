@@ -7,8 +7,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Import;
 
 import com.develop.estore.ProductService.command.interceptors.CreateProductCommandInterceptor;
+import com.develop.estore.ProductService.core.config.AxonConfig;
 import com.develop.estore.ProductService.core.exeption.ProductServiceEventsErrorHandler;
 
 /**
@@ -16,6 +18,7 @@ import com.develop.estore.ProductService.core.exeption.ProductServiceEventsError
  */
 @SpringBootApplication
 @EnableDiscoveryClient
+@Import({AxonConfig.class})
 public class ProductServiceApplication {
 
     public static void main(String[] args) {

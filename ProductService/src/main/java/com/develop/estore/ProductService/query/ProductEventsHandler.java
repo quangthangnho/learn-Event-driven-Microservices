@@ -1,7 +1,5 @@
 package com.develop.estore.ProductService.query;
 
-import core.event.ProductReservedEvent;
-import lombok.extern.slf4j.Slf4j;
 import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.stereotype.Component;
@@ -9,6 +7,9 @@ import org.springframework.stereotype.Component;
 import com.develop.estore.ProductService.core.data.entity.ProductEntity;
 import com.develop.estore.ProductService.core.data.repository.ProductRepository;
 import com.develop.estore.ProductService.core.events.ProductCreatedEvent;
+
+import core.event.ProductReservedEvent;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @ProcessingGroup("product-group")
@@ -36,6 +37,8 @@ public class ProductEventsHandler {
         ProductEntity productEntity = productRepository.findByProductId(productReservedEvent.getProductId());
         productEntity.setQuantity(productEntity.getQuantity() - productReservedEvent.getQuantity());
         productRepository.save(productEntity);
-        log.info("save ENTITY: ProductReservedEvent is called for productId: {}", productReservedEvent.getProductId() + " and orderId: " + productReservedEvent.getOrderId());
+        log.info(
+                "save ENTITY: ProductReservedEvent is called for productId: {}",
+                productReservedEvent.getProductId() + " and orderId: " + productReservedEvent.getOrderId());
     }
 }

@@ -1,29 +1,23 @@
 package com.develop.estore.OrderService.sagas;
 
-import java.io.Serializable;
-
+import com.develop.estore.OrderService.core.event.OrderCreatedEvent;
+import core.command.ReserveProductCommand;
+import core.event.ProductReservedEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.modelling.saga.SagaEventHandler;
 import org.axonframework.modelling.saga.StartSaga;
 import org.axonframework.spring.stereotype.Saga;
+import org.springframework.beans.factory.annotation.Autowired;
 
-import com.develop.estore.OrderService.core.event.OrderCreatedEvent;
-
-import core.command.ReserveProductCommand;
-import core.event.ProductReservedEvent;
-import org.springframework.stereotype.Component;
+import java.io.Serializable;
 
 @Saga
 @Slf4j
-@Component
 public class OrderSaga implements Serializable {
 
-    private final transient CommandGateway commandGateway;
-
-    public OrderSaga(CommandGateway commandGateway) {
-        this.commandGateway = commandGateway;
-    }
+    @Autowired
+    private transient CommandGateway commandGateway;
 
     @StartSaga
     @SagaEventHandler(associationProperty = "orderId")

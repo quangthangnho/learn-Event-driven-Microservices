@@ -14,6 +14,9 @@ import core.command.ReserveProductCommand;
 import core.event.ProductReservedEvent;
 import lombok.NoArgsConstructor;
 
+/**
+ * @author admin
+ */
 @Aggregate
 @NoArgsConstructor
 public class ProductAggregate {
