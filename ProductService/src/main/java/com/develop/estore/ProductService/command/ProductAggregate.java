@@ -9,10 +9,10 @@ import org.axonframework.modelling.command.AggregateLifecycle;
 import org.axonframework.spring.stereotype.Aggregate;
 
 import com.develop.estore.ProductService.core.events.ProductCreatedEvent;
-import com.develop.estore.ProductService.core.events.ProductReservationCancelledEvent;
 
 import core.command.CancelProductReservationCommand;
 import core.command.ReserveProductCommand;
+import core.event.ProductReservationCancelledEvent;
 import core.event.ProductReservedEvent;
 import lombok.NoArgsConstructor;
 

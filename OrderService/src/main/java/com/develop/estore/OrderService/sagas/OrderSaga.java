@@ -9,18 +9,22 @@ import java.util.concurrent.TimeUnit;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.deadline.DeadlineManager;
 import org.axonframework.deadline.annotation.DeadlineHandler;
+import org.axonframework.messaging.responsetypes.ResponseTypes;
 import org.axonframework.modelling.saga.EndSaga;
 import org.axonframework.modelling.saga.SagaEventHandler;
 import org.axonframework.modelling.saga.StartSaga;
 import org.axonframework.queryhandling.QueryGateway;
+import org.axonframework.queryhandling.QueryUpdateEmitter;
 import org.axonframework.spring.stereotype.Saga;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.develop.estore.OrderService.command.ApproveOrderCommand;
 import com.develop.estore.OrderService.command.RejectOrderCommand;
+import com.develop.estore.OrderService.core.dto.response.OrderSumaryDto;
 import com.develop.estore.OrderService.core.event.OrderApprovedEvent;
 import com.develop.estore.OrderService.core.event.OrderCreatedEvent;
 import com.develop.estore.OrderService.core.event.OrderRejectEvent;
+import com.develop.estore.OrderService.query.FindOrderQuery;
 
 import core.command.CancelProductReservationCommand;
 import core.command.ProgressPaymentCommand;
@@ -45,6 +49,9 @@ public class OrderSaga implements Serializable {
     @Autowired
     private transient DeadlineManager deadlineManager;
 
+    @Autowired
+    private transient QueryUpdateEmitter queryUpdateEmitter;
+
     private final String PAYMENT_PROCESSING_DEADLINE = "payment-processing-deadline";
 
     private String scheduleId = null;
@@ -66,6 +73,11 @@ public class OrderSaga implements Serializable {
         commandGateway.send(reserveProductCommand, (commandMessage, commandResultMessage) -> {
             if (commandResultMessage.isExceptional()) {
                 // handle compensating transaction
+                RejectOrderCommand rejectOrderCommand = RejectOrderCommand.builder()
+                        .orderId(orderCreatedEvent.getOrderId())
+                        .reason(commandResultMessage.exceptionResult().getMessage())
+                        .build();
+                commandGateway.send(rejectOrderCommand);
             }
         });
     }
@@ -79,12 +91,14 @@ public class OrderSaga implements Serializable {
 
         FetchUserPaymentDetailsQuery fetchUserPaymentDetailsQuery = FetchUserPaymentDetailsQuery.builder()
                 .userId(productReservedEvent.getUserId())
+                .orderId(productReservedEvent.getOrderId())
                 .build();
 
         User userPaymentDetails = null;
         try {
-            userPaymentDetails =
-                    queryGateway.query(fetchUserPaymentDetailsQuery, User.class).join();
+            userPaymentDetails = queryGateway
+                    .query(fetchUserPaymentDetailsQuery, ResponseTypes.instanceOf(User.class))
+                    .join();
         } catch (Exception e) {
             log.error(e.getMessage());
             // handle compensating transaction
@@ -154,6 +168,11 @@ public class OrderSaga implements Serializable {
     public void handle(OrderApprovedEvent orderApprovedEvent) {
         // handle success
         log.info("OrderApprovedEvent: Order is approved for orderId: {}", orderApprovedEvent.getOrderId());
+
+        queryUpdateEmitter.emit(
+                FindOrderQuery.class,
+                query -> true,
+                new OrderSumaryDto(orderApprovedEvent.getOrderId(), orderApprovedEvent.getOrderStatus()));
     }
 
     @SagaEventHandler(associationProperty = "orderId")
@@ -171,6 +190,14 @@ public class OrderSaga implements Serializable {
     public void handle(OrderRejectEvent orderRejectEvent) {
         // handle compensating transaction
         log.info("OrderRejectEvent: Order is rejected for orderId: {}", orderRejectEvent.getOrderId());
+
+        queryUpdateEmitter.emit(
+                FindOrderQuery.class,
+                query -> true,
+                new OrderSumaryDto(
+                        orderRejectEvent.getOrderId(),
+                        orderRejectEvent.getOrderStatus(),
+                        orderRejectEvent.getReason()));
     }
 
     @DeadlineHandler(deadlineName = PAYMENT_PROCESSING_DEADLINE)

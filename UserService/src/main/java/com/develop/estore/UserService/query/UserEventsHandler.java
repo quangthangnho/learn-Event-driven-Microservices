@@ -1,11 +1,12 @@
 package com.develop.estore.UserService.query;
 
+import org.axonframework.queryhandling.QueryHandler;
+import org.springframework.stereotype.Component;
+
 import core.dto.PaymentDetails;
 import core.dto.User;
 import core.query.FetchUserPaymentDetailsQuery;
 import lombok.extern.slf4j.Slf4j;
-import org.axonframework.queryhandling.QueryHandler;
-import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j

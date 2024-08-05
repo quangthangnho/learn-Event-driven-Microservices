@@ -8,4 +8,5 @@ import lombok.Data;
 public class FetchUserPaymentDetailsQuery {
 
     private String userId;
+    private String orderId;
 }
