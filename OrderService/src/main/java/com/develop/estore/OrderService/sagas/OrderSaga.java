@@ -1,10 +1,14 @@
 package com.develop.estore.OrderService.sagas;
 
 import java.io.Serializable;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.axonframework.commandhandling.gateway.CommandGateway;
+import org.axonframework.deadline.DeadlineManager;
+import org.axonframework.deadline.annotation.DeadlineHandler;
 import org.axonframework.modelling.saga.EndSaga;
 import org.axonframework.modelling.saga.SagaEventHandler;
 import org.axonframework.modelling.saga.StartSaga;
@@ -37,6 +41,13 @@ public class OrderSaga implements Serializable {
 
     @Autowired
     private transient QueryGateway queryGateway;
+
+    @Autowired
+    private transient DeadlineManager deadlineManager;
+
+    private final String PAYMENT_PROCESSING_DEADLINE = "payment-processing-deadline";
+
+    private String scheduleId = null;
 
     @StartSaga
     @SagaEventHandler(associationProperty = "orderId")
@@ -88,6 +99,9 @@ public class OrderSaga implements Serializable {
         }
         log.info("User payment details are successfully fetched for userId: {}", userPaymentDetails.toString());
 
+        scheduleId = deadlineManager.schedule(
+                Duration.of(10, ChronoUnit.SECONDS), PAYMENT_PROCESSING_DEADLINE, productReservedEvent);
+
         ProgressPaymentCommand progressPaymentCommand = ProgressPaymentCommand.builder()
                 .orderId(productReservedEvent.getOrderId())
                 .paymentDetails(userPaymentDetails.getPaymentDetails())
@@ -108,6 +122,7 @@ public class OrderSaga implements Serializable {
     }
 
     private void cancelProductReservation(ProductReservedEvent productReservedEvent, String reason) {
+        handlePaymentDeadline();
         // handle compensating transaction
         CancelProductReservationCommand cancelProductReservationCommand = CancelProductReservationCommand.builder()
                 .orderId(productReservedEvent.getOrderId())
@@ -121,9 +136,17 @@ public class OrderSaga implements Serializable {
 
     @SagaEventHandler(associationProperty = "orderId")
     public void handle(PaymentProcessedEvent paymentProcessedEvent) {
+        handlePaymentDeadline();
         ApproveOrderCommand approveOrderCommand = new ApproveOrderCommand(paymentProcessedEvent.getOrderId());
         commandGateway.send(approveOrderCommand);
         log.info("PaymentProcessedEvent:  Payment is processed for orderId: {}", paymentProcessedEvent.getOrderId());
+    }
+
+    private void handlePaymentDeadline() {
+        if (scheduleId != null) {
+            deadlineManager.cancelSchedule(PAYMENT_PROCESSING_DEADLINE, scheduleId);
+            scheduleId = null;
+        }
     }
 
     @EndSaga
@@ -148,5 +171,12 @@ public class OrderSaga implements Serializable {
     public void handle(OrderRejectEvent orderRejectEvent) {
         // handle compensating transaction
         log.info("OrderRejectEvent: Order is rejected for orderId: {}", orderRejectEvent.getOrderId());
+    }
+
+    @DeadlineHandler(deadlineName = PAYMENT_PROCESSING_DEADLINE)
+    public void handlePaymentDeadline(ProductReservedEvent productReservedEvent) {
+        // handle compensating transaction
+        log.info("Payment deadline is reached for orderId: {}", productReservedEvent.getOrderId());
+        cancelProductReservation(productReservedEvent, "Payment is not processed within the deadline");
     }
 }
