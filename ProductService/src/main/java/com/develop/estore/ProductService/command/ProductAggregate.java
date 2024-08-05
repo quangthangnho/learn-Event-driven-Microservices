@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 /**
  * @author admin
  */
-@Aggregate
+@Aggregate(snapshotTriggerDefinition = "productSnapshotTriggerDefinition")
 @NoArgsConstructor
 public class ProductAggregate {
 
